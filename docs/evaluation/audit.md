@@ -57,7 +57,7 @@ audit パッケージは、Claude Code セッション中のルーティング�
 - [ ] EV-11（境界 / should）: `--days` 未指定時、`kpi-report` は `kpi_scorecard.default_period_days`（デフォルト 7 日）を集計期間として使用する — 根拠: packages/audit/README.md（audit-flags.json フラグ表 + kpi-report 節）
 - [ ] EV-12（異常 / must）: `.claude/config/audit/audit-flags.local.json` が存在する場合、ベース設定（`audit-flags.json`）より優先して適用される — 根拠: packages/audit/README.md（設定節）+ .claude/rules/config-loading.md
 - [ ] EV-13（異常 / must）: hook 内部で例外が発生してもセッション進行を止めない（fail-open） — 根拠: 実装挙動（各 hook の `@safe_hook_execution` デコレータ）
-- [ ] EV-14（異常 / must）: ログ（`prompt` / `cli_call` イベント等）に書き込まれるテキストから API キー・トークン・パスワード・クラウド認証情報・秘密鍵等の機密情報がマスキングされ、生の値が JSONL に残らない — 根拠: 実装挙動（secret_masking.py モジュール docstring「audit-prompt.py / audit-cli.py で共用」+ 両 hook からの import）
+- [ ] EV-14（異常 / must）: ログ（`prompt` / `cli_call` イベント等）に書き込まれるテキストから API キー・トークン・パスワード・クラウド認証情報・秘密鍵等の機密情報がマスキングされ、生の値が JSONL に残らない — 根拠: 実装挙動（secret_masking.py モジュール docstring「audit-prompt.py / audit-cli.py と agent-routing の jev_router.py（Jev への送信前）で共用する」+ 両 hook からの import）
 - [ ] EV-15（正常 / should）: `dashboard-html -- -o -` 指定時は標準出力に HTML を出力し、ファイル書き込みを行わない — 根拠: packages/audit/README.md（dashboard-html 節）
 
 ## 4. 類型別観点
@@ -87,7 +87,7 @@ audit パッケージは、Claude Code セッション中のルーティング�
 
 ## 5. テストレビュー判断基準（パッケージ固有）
 
-- EV-14（秘密情報マスキング）を検証するテストは、`sk-` 形式トークン・`Bearer` ヘッダー・AWS/Google 系キー・PEM 秘密鍵ブロックなど、パターンごとに独立したケースを持つこと。1 パターンの通過を全パターン担保の代わりにしない。
+- EV-14（秘密情報マスキング）を検証するテストは、`sk-` 形式トークン・`Bearer` ヘッダー・`Authorization: Basic`・JWT 単体・GitHub / GitLab / Slack のトークン・AWS/Google 系キー・`passwd` / `pwd` 等のキーの値・PEM 秘密鍵ブロック（暗号化・END 行の無いものを含む）など、パターンごとに独立したケースを持つこと。誤検知の抑制（`max_tokens=4096`、`Authorization:` の付かない `Basic`、`xoxo-` 等の文章を伏せない）も独立したケースで確かめる。パターン同士の干渉（`secret: -----BEGIN …` のようにキーの値として PEM が続く場合に本文が残らない）と、長い入力で処理時間が伸びないことも確かめる。1 パターンの通過を全パターン担保の代わりにしない。
 - EV-09（quality_gate イベントの記録元が audit ではない）を検証する際、audit 側のテストは「audit hook が quality_gate イベントを発生させないこと」の確認に留め、quality-gates 側の記録内容の正しさまでは audit の評価セットの範囲外とする。
 - EV-06（トレース連鎖）のテストは、`subagent_start` の `ptid` が親イベントのトレース ID と一致することを、単一イベントの存在確認ではなく親子関係の突合で検証すること。
 - EV-21/EV-22（root worktree 集約）のテストは、`hook_common.resolve_root_worktree` / `resolve_log_root` 側の既存テストが通ることのみで代替せず、audit の `_resolve_log_root` / `_resolve_project_dir` が委譲後も正しい解決先（root の `.claude/logs/audit/` またはフォールバック先の project_dir）へたどり着くことを audit 自身のテストとして検証しているか確認する。

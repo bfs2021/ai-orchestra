@@ -214,6 +214,30 @@ def test_jev_mask_order_and_targets() -> None:
     assert "hunter2" not in masked
 
 
+def test_jev_mask_covers_vendor_tokens_and_basic_auth() -> None:
+    mask_secrets = jev_router.load_mask_secrets()
+    assert mask_secrets is not None
+    header = "eyJ" + "hbGciOiJIUzI1NiJ9"
+    payload = "eyJ" + "zdWIiOiIxMjM0In0"
+    signature = "c2ln" + "bmF0dXJlLXZhbHVl"
+    github_body = "A" * 22 + "_" + "B" * 59
+    github_token = "github" + "_pat_" + github_body
+    slack_body = "1234567890-" * 2 + "AbCdEfGhIjKlMnOpQrStUvWx"
+    slack_token = "xox" + "b-" + slack_body
+    credentials = "dXNl" + "cjpwYXNzd29yZA=="
+    scheme = "Ba" + "sic"
+    prompt = (
+        f"id: {header}.{payload}.{signature}\n"
+        f"github: {github_token}\nslack: {slack_token}\n"
+        f"Authorization: {scheme} {credentials}"
+    )
+    masked = jev_router.mask_prompt(prompt, mask_secrets)
+    for part in (header, payload, signature, github_body, slack_body, credentials.rstrip("=")):
+        assert part not in masked
+    assert masked.count("[REDACTED]") == 4
+    assert "Authorization:" in masked
+
+
 def test_jev_mask_runs_secret_masking_before_url_replacement() -> None:
     """接続文字列の認証情報は mask_secrets が先に伏せ、URL 置換の前に消える。"""
     seen: list[str] = []
