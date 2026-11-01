@@ -40,6 +40,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **`audit` / `agent-routing`: 秘密情報のマスキングで伏せ漏れていた形式を伏せるように修正**: JWT 単体、GitHub（`gho_` 等・fine-grained PAT）・GitLab・Slack のトークン、`Authorization: Basic`、`passwd` / `pwd` キーの値、暗号化 PEM と END 行の無い PEM、`+` `/` `=` を含む Bearer が、監査ログと Jev への送信内容に残っていた。
 - **`spec-writer` が Codex に作業を委譲できない問題を修正**: `cli-tools.yaml` で `tool: codex` にルーティングされているのに、エージェント定義に `Bash` ツールが無く `codex exec` を呼べなかった。
 - **`agent-routing`: 未導入のエージェントを提案しないように修正**: プロジェクトに `.claude/agents` がある場合、定義ファイルが実在するエージェントだけを提案する。
 - **`agent-routing`: `researcher` が指定 CLI を試さず直接調査してしまう問題に対する指示を修正**: 解決済みの tool が Antigravity / Codex なら CLI を先に実行し、未試行のまま WebSearch / WebFetch 等へ切り替えないことを明記した。実行失敗時のフォールバック条件と、実効 tool・試行結果・理由の報告も明確にした。`.local.yaml` の上書き、CLI 無効化、成功後の出典確認は維持する。
